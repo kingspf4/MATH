@@ -2,65 +2,409 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <title>異分母分數加法題目產生器</title>
+  <title>異分母分數加法練習系統</title>
   <style>
     body {
-      background: #f8fafc;
-      font-family: "Microsoft JhengHei", sans-serif;
-      text-align: center;
-      padding: 40px;
+      margin: 0;
+      padding: 40px 20px;
+      background: #f4f6fb;
+      font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
     }
+
     h1 {
-      color: #2b6cb0;
-      margin-bottom: 30px;
+      margin: 0 0 8px;
+      color: #2563eb;
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
     }
+
+    .sub {
+      color: #4b5563;
+      font-size: 14px;
+      margin-bottom: 26px;
+      text-align: center;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+      padding: 24px 24px 20px;
+      max-width: 620px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .label {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
     .question {
-      font-size: 48px;
-      font-weight: bold;
-      margin: 40px 0;
+      margin: 16px 0 22px;
+      font-size: 40px;
+      font-weight: 600;
+      color: #111827;
+      text-align: center;
+      min-height: 52px;
     }
+
+    /* 分數樣式：上下排列，有分數線 */
+    .frac {
+      display: inline-block;
+      text-align: center;
+      vertical-align: middle;
+      margin: 0 6px;
+    }
+
+    .frac span {
+      display: block;
+      line-height: 1.1;
+    }
+
+    .frac .bar {
+      border-top: 2px solid #111827;
+      margin: 4px 0;
+      width: 1.6em;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .plus, .eq {
+      display: inline-block;
+      margin: 0 10px;
+      font-weight: 700;
+      font-size: 34px;
+      color: #111827;
+      vertical-align: middle;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
     button {
-      font-size: 20px;
-      padding: 10px 20px;
-      background: #3182ce;
+      font-size: 16px;
+      padding: 8px 20px;
+      border-radius: 999px;
       border: none;
-      border-radius: 10px;
-      color: white;
+      background: #2563eb;
+      color: #ffffff;
       cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 5px 12px rgba(37, 99, 235, 0.3);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     }
-    button:hover { background: #2c5282; }
-    .hint {
-      color: #4a5568;
-      margin-top: 20px;
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.38);
+      background: #1d4ed8;
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 8px rgba(15, 23, 42, 0.26);
+    }
+
+    .btn-ghost {
+      background: #ffffff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      box-shadow: none;
+    }
+    .btn-ghost:hover {
+      background: #eff6ff;
+      box-shadow: 0 4px 10px rgba(148, 163, 253, 0.25);
+    }
+
+    .answer-area {
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 15px;
+      color: #374151;
+    }
+
+    .answer-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .mixed-label {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    input[type="number"] {
+      width: 70px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      border: 1px solid #cbd5f5;
+      font-size: 16px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    .slash {
       font-size: 18px;
+      font-weight: 600;
+      margin: 0 2px;
+    }
+
+    .result-msg {
+      margin-top: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      min-height: 22px;
+      text-align: center;
+    }
+
+    .result-ok {
+      color: #16a34a;
+    }
+
+    .result-ng {
+      color: #dc2626;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .show-ans {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #111827;
+      text-align: center;
+      min-height: 24px;
     }
   </style>
 </head>
 <body>
-  <h1>異分母分數加法題目產生器</h1>
-  <div class="question" id="question">按下「出題」開始練習！</div>
-  <button onclick="generate()">出題</button>
-  <div class="hint">（本頁不會顯示答案，請自己計算喔！）</div>
+  <h1>異分母分數加法練習系統</h1>
+  <div class="sub">
+    隨機產生異分母分數加法題目．學生可用假分數或帶分數作答．按「顯示答案」才看得到正解，方便課堂練習與提問。
+  </div>
+
+  <div class="card">
+    <div class="label">請計算：</div>
+    <div class="question" id="question">按「出題」開始</div>
+
+    <div class="btn-row">
+      <button id="btn-new">出題</button>
+      <button id="btn-check">檢查答案</button>
+      <button class="btn-ghost" id="btn-show">顯示答案</button>
+      <button class="btn-ghost" id="btn-clear">清除作答</button>
+    </div>
+
+    <div class="answer-area">
+      <div class="answer-row">
+        <span class="mixed-label">作答方式：</span>
+        <span class="mixed-label">（可只填假分數，或填「帶分數」三格）</span>
+      </div>
+      <div class="answer-row">
+        <span>帶分數：</span>
+        <input type="number" id="whole" placeholder="整數">
+        <span class="slash">＋</span>
+        <input type="number" id="num" placeholder="分子">
+        <span class="slash">/</span>
+        <input type="number" id="den" placeholder="分母">
+      </div>
+      <div class="answer-row">
+        <span class="mixed-label">（若用假分數，整數可留空，直接填分子 / 分母）</span>
+      </div>
+    </div>
+
+    <div class="result-msg" id="resultMsg"></div>
+    <div class="hint">小提醒：先找分母的最小公倍數通分，再相加，最後記得約分。</div>
+    <div class="show-ans" id="answerBox"></div>
+  </div>
 
   <script>
-    // 產生分數格式，例如 3/4 → ³⁄₄
-    function prettyFrac(num, den) {
-      const sup = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
-      const sub = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
-      return num.toString().split('').map(d=>sup[d]).join('') + '⁄' +
-             den.toString().split('').map(d=>sub[d]).join('');
+    let current = null;
+
+    function gcd(a, b) {
+      return b === 0 ? Math.abs(a) : gcd(b, a % b);
     }
 
-    function generate() {
-      const a = Math.floor(Math.random()*8)+1;
-      const b = Math.floor(Math.random()*8)+2;
-      const c = Math.floor(Math.random()*8)+1;
-      const d = Math.floor(Math.random()*8)+2;
-      if (b === d) return generate(); // 確保異分母
-
-      const q = `${prettyFrac(a,b)} + ${prettyFrac(c,d)} =`;
-      document.getElementById('question').textContent = q;
+    function lcm(a, b) {
+      return a * b / gcd(a, b);
     }
+
+    function createFracHTML(num, den) {
+      return `
+        <span class="frac">
+          <span>${num}</span>
+          <span class="bar"></span>
+          <span>${den}</span>
+        </span>
+      `;
+    }
+
+    function createMixedHTML(num, den) {
+      if (num < den) {
+        return createFracHTML(num, den);
+      }
+      const whole = Math.floor(num / den);
+      const rest = num % den;
+      if (rest === 0) {
+        return `${whole}`;
+      }
+      return `
+        <span>${whole}</span>
+        ${createFracHTML(rest, den)}
+      `;
+    }
+
+    function generateQuestion() {
+      // 分子 1~9，分母 2~9
+      let a = Math.floor(Math.random() * 9) + 1;
+      let b = Math.floor(Math.random() * 8) + 2;
+      let c = Math.floor(Math.random() * 9) + 1;
+      let d = Math.floor(Math.random() * 8) + 2;
+
+      // 確保異分母
+      if (b === d) {
+        return generateQuestion();
+      }
+
+      // 計算正確答案（最簡分數）
+      const common = lcm(b, d);
+      const aNew = a * (common / b);
+      const cNew = c * (common / d);
+      const sum = aNew + cNew;
+      const g = gcd(sum, common);
+      const simpleNum = sum / g;
+      const simpleDen = common / g;
+
+      current = {
+        a, b, c, d,
+        ansNum: simpleNum,
+        ansDen: simpleDen
+      };
+
+      const qHTML =
+        createFracHTML(a, b) +
+        `<span class="plus">+</span>` +
+        createFracHTML(c, d) +
+        `<span class="eq">=</span>`;
+
+      document.getElementById('question').innerHTML = qHTML;
+      document.getElementById('resultMsg').textContent = '';
+      document.getElementById('answerBox').textContent = '';
+      clearInputs();
+    }
+
+    function clearInputs() {
+      document.getElementById('whole').value = '';
+      document.getElementById('num').value = '';
+      document.getElementById('den').value = '';
+    }
+
+    function checkAnswer() {
+      const msg = document.getElementById('resultMsg');
+      const answerBox = document.getElementById('answerBox');
+      msg.textContent = '';
+      answerBox.textContent = '';
+
+      if (!current) {
+        msg.textContent = '請先按「出題」。';
+        msg.className = 'result-msg result-ng';
+        return;
+      }
+
+      const wholeRaw = document.getElementById('whole').value.trim();
+      const numRaw = document.getElementById('num').value.trim();
+      const denRaw = document.getElementById('den').value.trim();
+
+      if (!numRaw || !denRaw) {
+        msg.textContent = '請至少填寫分子與分母。';
+        msg.className = 'result-msg result-ng';
+        return;
+      }
+
+      const whole = wholeRaw === '' ? 0 : Number(wholeRaw);
+      const num = Number(numRaw);
+      const den = Number(denRaw);
+
+      if (!Number.isFinite(whole) || !Number.isFinite(num) || !Number.isFinite(den) || den === 0) {
+        msg.textContent = '請輸入正確的數字（分母不可為 0）。';
+        msg.className = 'result-msg result-ng';
+        return;
+      }
+
+      // 把帶分數轉成假分數
+      const userNum = whole * den + num;
+      const userDen = den;
+
+      if (userNum <= 0 || userDen <= 0) {
+        msg.textContent = '請確認整數與分數皆為正數。';
+        msg.className = 'result-msg result-ng';
+        return;
+      }
+
+      // 約分
+      const g = gcd(userNum, userDen);
+      const simpNum = userNum / g;
+      const simpDen = userDen / g;
+
+      if (simpNum === current.ansNum && simpDen === current.ansDen) {
+        msg.textContent = '✅ 正確！做得很好！';
+        msg.className = 'result-msg result-ok';
+      } else {
+        msg.textContent = '❌ 再試一次！記得先通分，再約分。';
+        msg.className = 'result-msg result-ng';
+      }
+    }
+
+    function showAnswer() {
+      const answerBox = document.getElementById('answerBox');
+      const msg = document.getElementById('resultMsg');
+
+      if (!current) {
+        msg.textContent = '請先按「出題」。';
+        msg.className = 'result-msg result-ng';
+        return;
+      }
+
+      const improper = createFracHTML(current.ansNum, current.ansDen);
+      const mixed = createMixedHTML(current.ansNum, current.ansDen);
+
+      answerBox.innerHTML =
+        `標準答案（最簡假分數）：${improper}
+         <br>亦可寫成帶分數：${mixed}`;
+    }
+
+    // 綁定按鈕
+    document.getElementById('btn-new').addEventListener('click', generateQuestion);
+    document.getElementById('btn-check').addEventListener('click', checkAnswer);
+    document.getElementById('btn-show').addEventListener('click', showAnswer);
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      clearInputs();
+      document.getElementById('resultMsg').textContent = '';
+      document.getElementById('answerBox').textContent = '';
+    });
   </script>
 </body>
 </html>
