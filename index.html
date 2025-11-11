@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>異分母分數加法題目產生器</title>
+  <style>
+    body {
+      background: #f7fafc;
+      font-family: "Microsoft JhengHei", sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    h1 { color: #2b6cb0; }
+    .question {
+      font-size: 36px;
+      margin: 30px 0;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      background: #3182ce;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2c5282;
+    }
+    .steps {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #2d3748;
+      background: #e2e8f0;
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>異分母分數加法題目產生器</h1>
+  <div class="question" id="question">按下「出題」開始！</div>
+  <button onclick="generate()">出題</button>
+  <div class="steps" id="steps"></div>
+
+  <script>
+    function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+    function lcm(a,b){ return a*b/gcd(a,b); }
+
+    function generate(){
+      const a = Math.floor(Math.random()*8)+1;
+      const b = Math.floor(Math.random()*8)+2;
+      const c = Math.floor(Math.random()*8)+1;
+      const d = Math.floor(Math.random()*8)+2;
+      if(b===d){return generate();} // 確保異分母
+
+      const question = `${a}/${b} + ${c}/${d}`;
+      document.getElementById('question').textContent = question;
+
+      const common = lcm(b,d);
+      const aNew = a*(common/b);
+      const cNew = c*(common/d);
+      const sumNum = aNew + cNew;
+      const g = gcd(sumNum, common);
+      const reduced = `${sumNum/g}/${common/g}`;
+
+      document.getElementById('steps').innerHTML =
+        `通分：${aNew}/${common} + ${cNew}/${common} = ${sumNum}/${common}<br>
+        約分後答案：${reduced}`;
+    }
+  </script>
+</body>
+</html>
