@@ -51,7 +51,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 16px 26px;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 10px;
       font-size: 13px;
       color: #374151;
@@ -74,14 +74,16 @@
       width: 180px;
     }
 
-    .mode-group {
+    .mode-group,
+    .ansmode-group {
       display: flex;
       gap: 10px;
       align-items: center;
       flex-wrap: wrap;
     }
 
-    .mode-group label {
+    .mode-group label,
+    .ansmode-group label {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -285,7 +287,8 @@
 <body>
   <h1>異分母分數加減法練習系統</h1>
   <div class="sub">
-    可調整數值範圍（至 50）、選擇加法 / 減法 / 隨機，支援帶分數作答，並記錄所有出題與顯示解答。
+    可調整數值範圍（至 50）、選擇加法 / 減法 / 隨機、控制答案是否為帶分數，
+    支援帶分數作答，並記錄所有出題與顯示解答。
   </div>
 
   <div class="card">
@@ -314,6 +317,15 @@
           <label><input type="radio" name="mode" value="add" checked> 只出加法</label>
           <label><input type="radio" name="mode" value="sub"> 只出減法</label>
           <label><input type="radio" name="mode" value="mix"> 隨機加減</label>
+        </div>
+      </div>
+
+      <div class="setting-block">
+        <div>答案型態（是否為帶分數）</div>
+        <div class="ansmode-group">
+          <label><input type="radio" name="ansMode" value="any" checked> 不限制</label>
+          <label><input type="radio" name="ansMode" value="proper"> 不出帶分數（答案 &lt; 1）</label>
+          <label><input type="radio" name="ansMode" value="mixed"> 只出帶分數（答案 &gt; 1）</label>
         </div>
       </div>
     </div>
@@ -346,7 +358,10 @@
     </div>
 
     <div class="result-msg" id="resultMsg"></div>
-    <div class="hint">提示：先找最小公倍數通分，再加減分子，最後約分。減法題已自動避免負數。</div>
+    <div class="hint">
+      提示：先找最小公倍數通分，再加減分子，最後約分。
+      減法題已自動避免負數；題目不會出「分子=分母」。
+    </div>
     <div class="show-ans" id="answerBox"></div>
 
     <!-- 題目紀錄 -->
@@ -373,21 +388,21 @@
     }
 
     function fracHTML(num, den) {
-      return `
-        <span class="frac">
-          <span>${num}</span>
-          <span class="bar"></span>
-          <span>${den}</span>
-        </span>
-      `;
+      return (
+        '<span class="frac">' +
+          '<span>' + num + '</span>' +
+          '<span class="bar"></span>' +
+          '<span>' + den + '</span>' +
+        '</span>'
+      );
     }
 
     function mixedHTML(num, den) {
       if (num < den) return fracHTML(num, den);
       const w = Math.floor(num / den);
       const r = num % den;
-      if (r === 0) return `${w}`;
-      return `${w}` + fracHTML(r, den);
+      if (r === 0) return '' + w;
+      return w + fracHTML(r, den);
     }
 
     // DOM
@@ -400,7 +415,6 @@
     const maxDenLabel = document.getElementById('maxDenLabel');
     const recordList = document.getElementById('recordList');
     const recordCount = document.getElementById('recordCount');
-
     const inputWhole = document.getElementById('whole');
     const inputNum = document.getElementById('num');
     const inputDen = document.getElementById('den');
@@ -409,7 +423,7 @@
     let current = null;
     const records = [];
 
-    // 更新 slider 顯示
+    // Slider 顯示
     maxNumSlider.addEventListener('input', () => {
       maxNumLabel.textContent = maxNumSlider.value;
     });
@@ -422,6 +436,11 @@
       return m ? m.value : 'add';
     }
 
+    function getAnsMode() {
+      const m = document.querySelector('input[name="ansMode"]:checked');
+      return m ? m.value : 'any';
+    }
+
     function randomInt(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -430,14 +449,15 @@
       const maxN = parseInt(maxNumSlider.value, 10) || 10;
       const maxD = parseInt(maxDenSlider.value, 10) || 10;
       const mode = getMode();
+      const ansMode = getAnsMode();
 
       let a, b, c, d, op;
       let tries = 0;
 
       while (true) {
         tries++;
-        if (tries > 200) {
-          alert('目前設定不易產生合適題目，請調整範圍。');
+        if (tries > 400) {
+          alert('目前設定不易產生合適題目，請調整範圍或條件。');
           return;
         }
 
@@ -445,8 +465,12 @@
         b = randomInt(2, maxD);
         c = randomInt(1, maxN);
         d = randomInt(2, maxD);
-        if (b === d) continue; // 確保異分母
 
+        // 不要同分母、不要分子=分母
+        if (b === d) continue;
+        if (a === b || c === d) continue;
+
+        // 決定運算符號
         if (mode === 'add') {
           op = '+';
         } else if (mode === 'sub') {
@@ -455,51 +479,59 @@
           op = Math.random() < 0.5 ? '+' : '-';
         }
 
-        // 若是減法，調整避免負數與 0
+        // 減法：避免負數與 0，如不符合就重抽或交換
         if (op === '-') {
           const left = a / b;
           const right = c / d;
           if (left === right) continue;
           if (left < right) {
-            // 交換，確保結果為正
-            [a, b, c, d] = [c, d, a, b];
+            // 交換，確保左邊較大
+            const ta = a, tb = b;
+            a = c; b = d;
+            c = ta; d = tb;
           }
         }
+
+        // 計算答案
+        const common = lcm(b, d);
+        const aNew = a * (common / b);
+        const cNew = c * (common / d);
+        let num = (op === '+') ? (aNew + cNew) : (aNew - cNew);
+
+        // 保險：避免非正數
+        if (num <= 0) continue;
+
+        const g = gcd(num, common);
+        const ansNum = num / g;
+        const ansDen = common / g;
+        const value = ansNum / ansDen;
+
+        // 根據選擇的答案型態篩選
+        if (ansMode === 'proper' && value >= 1) {
+          continue; // 要答案 < 1
+        }
+        if (ansMode === 'mixed' && value <= 1) {
+          continue; // 要答案 > 1（帶分數）
+        }
+
+        // 通過所有條件
+        current = { a, b, c, d, op, ansNum, ansDen };
         break;
       }
 
-      // 計算正確答案（最簡）
-      const common = lcm(b, d);
-      const aNew = a * (common / b);
-      const cNew = c * (common / d);
-      let num;
-      if (op === '+') num = aNew + cNew;
-      else num = aNew - cNew;
-
-      if (num <= 0) {
-        // 理論上上面已避免，保險再檢查
-        return generateQuestion();
-      }
-
-      const g = gcd(num, common);
-      const ansNum = num / g;
-      const ansDen = common / g;
-
-      current = { a, b, c, d, op, ansNum, ansDen };
-
       const qHTML =
-        fracHTML(a, b) +
-        `<span class="plus">${op}</span>` +
-        fracHTML(c, d) +
-        `<span class="eq">=</span>`;
-      qEl.innerHTML = qHTML;
+        fracHTML(current.a, current.b) +
+        '<span class="plus">' + current.op + '</span>' +
+        fracHTML(current.c, current.d) +
+        '<span class="eq">=</span>';
 
+      qEl.innerHTML = qHTML;
       resultMsg.textContent = '';
       resultMsg.className = 'result-msg';
       answerBox.textContent = '';
       clearInputs();
 
-      addRecord(current, qHTML);
+      addRecord(qHTML);
     }
 
     function clearInputs() {
@@ -537,6 +569,7 @@
 
       const userNum = w * d + n;
       const userDen = d;
+
       if (userNum <= 0 || userDen <= 0) {
         resultMsg.textContent = '請確認整數與分數皆為正數。';
         resultMsg.className = 'result-msg result-ng';
@@ -567,20 +600,23 @@
       const mixed = mixedHTML(current.ansNum, current.ansDen);
 
       answerBox.innerHTML =
-        `標準答案（最簡假分數）：${improper}<br>亦可寫成帶分數：${mixed}`;
+        '標準答案（最簡假分數）：' + improper +
+        '<br>亦可寫成帶分數：' + mixed;
 
-      // 同時在紀錄中補上本題解答（只標示在最新一題）
+      // 最新一題加上解答標註
       if (records.length > 0) {
         records[records.length - 1].answerHTML =
-          `＝ ${improper} （= ${mixed}）`;
+          '＝ ' + improper + '（= ' + mixed + '）';
         renderRecords();
       }
     }
 
-    function addRecord(q, qHTML) {
+    function addRecord(qHTML) {
+      // 只記到 "=" 前的題目形式
+      const idx = qHTML.indexOf('<span class="eq">');
+      const clean = idx >= 0 ? qHTML.slice(0, idx) : qHTML;
       records.push({
-        html: qHTML.replace('<span class="eq">=</span>', ''), // 紀錄到「=」前
-        op: q.op,
+        html: clean,
         answerHTML: ''
       });
       renderRecords();
@@ -593,18 +629,17 @@
         recordCount.textContent = '';
         return;
       }
-      // 最新顯示在上方
-      const rev = [...records].reverse();
-      rev.forEach((item, idx) => {
+      const rev = records.slice().reverse();
+      rev.forEach((item, i) => {
+        const no = rev.length - i;
         const div = document.createElement('div');
         div.className = 'record-item';
-        const no = rev.length - idx;
         div.innerHTML =
-          `<span class="record-index">${no}.</span>` +
-          `<span>${item.html}${item.answerHTML ? ' ' + item.answerHTML : ''}</span>`;
+          '<span class="record-index">' + no + '.</span>' +
+          '<span>' + item.html + (item.answerHTML ? ' ' + item.answerHTML : '') + '</span>';
         recordList.appendChild(div);
       });
-      recordCount.textContent = `共 ${records.length} 題`;
+      recordCount.textContent = '共 ' + records.length + ' 題';
     }
 
     function clearRecord() {
@@ -612,6 +647,7 @@
       renderRecords();
       qEl.textContent = '紀錄已清除，按「出題」繼續。';
       resultMsg.textContent = '';
+      resultMsg.className = 'result-msg';
       answerBox.textContent = '';
       clearInputs();
       current = null;
