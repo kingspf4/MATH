@@ -287,8 +287,8 @@
 <body>
   <h1>異分母分數加減法練習系統</h1>
   <div class="sub">
-    可調整數值範圍（至 50）、選擇加法 / 減法 / 隨機、設定題目是否含帶分數，
-    支援帶分數作答，並記錄所有出題與顯示解答。
+    可調整數值範圍（至 50）、選擇加法 / 減法 / 隨機，
+    並控制題目是否含帶分數或假分數。支援帶分數作答、顯示解答與題目紀錄。
   </div>
 
   <div class="card">
@@ -321,10 +321,11 @@
       </div>
 
       <div class="setting-block">
-        <div>題目型態（是否含帶分數）</div>
+        <div>題目型態（分數形式）</div>
         <div class="qtype-group">
-          <label><input type="radio" name="qType" value="proper" checked> 只出真分數題（無帶分數）</label>
-          <label><input type="radio" name="qType" value="mixed"> 一定含帶分數（至少一邊）</label>
+          <label><input type="radio" name="qType" value="proper" checked> 只出真分數題（兩邊皆真分數）</label>
+          <label><input type="radio" name="qType" value="mixed"> 一定含帶分數（至少一邊帶分數）</label>
+          <label><input type="radio" name="qType" value="improper"> 至少一邊是假分數（如 ⁷⁄₄）</label>
           <label><input type="radio" name="qType" value="any"> 不限制</label>
         </div>
       </div>
@@ -359,8 +360,8 @@
 
     <div class="result-msg" id="resultMsg"></div>
     <div class="hint">
-      提示：題目永遠是異分母，不會出「分子＝分母」。減法自動確保結果為正數。
-      含帶分數與否依上方「題目型態」設定。
+      題目永遠是異分母，不出「分子＝分母」。減法已自動確保結果為正值。
+      「帶分數 / 假分數」由上方題目型態控制。
     </div>
     <div class="show-ans" id="answerBox"></div>
 
@@ -388,15 +389,15 @@
     }
 
     function fracHTML(num, den) {
-      return (
+      return '' +
         '<span class="frac">' +
           '<span>' + num + '</span>' +
           '<span class="bar"></span>' +
           '<span>' + den + '</span>' +
-        '</span>'
-      );
+        '</span>';
     }
 
+    // 題目顯示：若 w>0 則帶分數，否則一般分數
     function operandHTML(w, num, den) {
       if (w > 0) {
         return '<span>' + w + '</span>' + fracHTML(num, den);
@@ -409,10 +410,10 @@
       const w = Math.floor(num / den);
       const r = num % den;
       if (r === 0) return '' + w;
-      return w + fracHTML(r, den);
+      return '' + w + fracHTML(r, den);
     }
 
-    // DOM 元素
+    // DOM
     const qEl = document.getElementById('question');
     const resultMsg = document.getElementById('resultMsg');
     const answerBox = document.getElementById('answerBox');
@@ -463,69 +464,113 @@
 
       while (true) {
         tries++;
-        if (tries > 400) {
-          alert('目前設定不易產生合適題目，請調整範圍或題目型態。');
+        if (tries > 500) {
+          alert('目前設定不易產生合適題目，請調整數值或題目型態。');
           return;
         }
 
-        // 隨機分母（異分母）
+        // 隨機異分母
         d1 = randomInt(2, maxD);
         d2 = randomInt(2, maxD);
         if (d1 === d2) continue;
 
-        // 隨機分子（真分數部分，避免分子=分母）
-        n1 = randomInt(1, Math.min(maxN, d1 - 1));
-        n2 = randomInt(1, Math.min(maxN, d2 - 1));
-        if (n1 === d1 || n2 === d2) continue;
-
-        // 整數部分
         w1 = 0; w2 = 0;
+        n1 = 0; n2 = 0;
 
         if (qType === 'proper') {
-          // 題目全真分數：整數部分為 0
-          w1 = 0; w2 = 0;
+          // 兩邊真分數：0 < 分子 < 分母
+          n1 = randomInt(1, Math.min(maxN, d1 - 1));
+          n2 = randomInt(1, Math.min(maxN, d2 - 1));
+          if (n1 >= d1 || n2 >= d2) continue;
         } else if (qType === 'mixed') {
-          // 一定含帶分數：至少一邊整數 > 0
+          // 至少一邊帶分數（整數 >0）
+          n1 = randomInt(1, Math.min(maxN, d1 - 1));
+          n2 = randomInt(1, Math.min(maxN, d2 - 1));
+          if (n1 >= d1 || n2 >= d2) continue;
+
           w1 = randomInt(0, maxN);
           w2 = randomInt(0, maxN);
           if (w1 === 0 && w2 === 0) {
             if (Math.random() < 0.5) w1 = randomInt(1, maxN);
             else w2 = randomInt(1, maxN);
           }
-        } else { 
-          // any：有機會出真分數，有機會含帶分數
-          if (Math.random() < 0.5) {
-            w1 = 0; w2 = 0;
+        } else if (qType === 'improper') {
+          // 至少一邊是假分數：用「假分數形式」呈現 (w=0, 分子>分母)
+          // 先決定哪一邊一定是假分數
+          const leftMustImp = Math.random() < 0.5;
+          // 左邊
+          if (leftMustImp) {
+            if (maxN <= d1 + 1) continue;
+            n1 = randomInt(d1 + 1, maxN); // 分子 > 分母
           } else {
+            n1 = randomInt(1, Math.min(maxN, d1 - 1)); // 先給真分數
+          }
+          // 右邊
+          if (!leftMustImp) {
+            // 右邊一定要是假分數
+            if (maxN <= d2 + 1) continue;
+            n2 = randomInt(d2 + 1, maxN);
+          } else {
+            // 左已是假分數，右邊可真可假
+            if (maxN > d2 + 1 && Math.random() < 0.5) {
+              n2 = randomInt(d2 + 1, maxN);
+            } else {
+              n2 = randomInt(1, Math.min(maxN, d2 - 1));
+            }
+          }
+          // 保證不出分子=分母（上面已確保）
+        } else {
+          // any：有機會真分數，有機會帶分數，有機會假分數
+          // 先隨機選三種模式之一再產
+          const r = Math.random();
+          if (r < 0.34) {
+            // 真分數
+            n1 = randomInt(1, Math.min(maxN, d1 - 1));
+            n2 = randomInt(1, Math.min(maxN, d2 - 1));
+          } else if (r < 0.67) {
+            // 帶分數
+            n1 = randomInt(1, Math.min(maxN, d1 - 1));
+            n2 = randomInt(1, Math.min(maxN, d2 - 1));
             w1 = randomInt(0, maxN);
             w2 = randomInt(0, maxN);
             if (w1 === 0 && w2 === 0) {
               if (Math.random() < 0.5) w1 = randomInt(1, maxN);
               else w2 = randomInt(1, maxN);
             }
+          } else {
+            // 假分數至少一邊
+            if (maxN <= d1 + 1 && maxN <= d2 + 1) continue;
+            const leftImp = Math.random() < 0.5 && maxN > d1 + 1;
+            if (leftImp) {
+              n1 = randomInt(d1 + 1, maxN);
+              if (maxN > d2 + 1 && Math.random() < 0.5) {
+                n2 = randomInt(d2 + 1, maxN);
+              } else {
+                n2 = randomInt(1, Math.min(maxN, d2 - 1));
+              }
+            } else {
+              n1 = randomInt(1, Math.min(maxN, d1 - 1));
+              n2 = randomInt(d2 + 1, maxN);
+            }
           }
         }
 
-        // 決定運算子
-        if (mode === 'add') {
-          op = '+';
-        } else if (mode === 'sub') {
-          op = '-';
-        } else {
-          op = Math.random() < 0.5 ? '+' : '-';
-        }
+        // 運算子
+        if (mode === 'add') op = '+';
+        else if (mode === 'sub') op = '-';
+        else op = Math.random() < 0.5 ? '+' : '-';
 
-        // 轉為假分數
-        let leftNum  = w1 * d1 + n1;
+        // 轉假分數做運算
+        let leftNum  = (w1 || 0) * d1 + n1;
         let leftDen  = d1;
-        let rightNum = w2 * d2 + n2;
+        let rightNum = (w2 || 0) * d2 + n2;
         let rightDen = d2;
 
-        // 減法：避免負數與 0，必要時交換
+        // 減法：避免結果 <= 0，如有需要交換
         if (op === '-') {
           const L = leftNum * rightDen;
           const R = rightNum * leftDen;
-          if (L === R) continue; // 避免結果 0
+          if (L === R) continue;
           if (L < R) {
             // 左右互換
             [w1, w2] = [w2, w1];
@@ -536,13 +581,12 @@
           }
         }
 
-        // 計算答案
         const common = lcm(leftDen, rightDen);
         const leftScaled  = leftNum  * (common / leftDen);
         const rightScaled = rightNum * (common / rightDen);
         let ansNum = (op === '+') ? (leftScaled + rightScaled) : (leftScaled - rightScaled);
 
-        if (ansNum <= 0) continue; // 安全檢查
+        if (ansNum <= 0) continue;
 
         const g = gcd(ansNum, common);
         ansNum /= g;
@@ -636,7 +680,6 @@
         '標準答案（最簡假分數）：' + improper +
         '<br>亦可寫成帶分數：' + mixed;
 
-      // 在最新一題附上解答
       if (records.length > 0) {
         records[records.length - 1].answerHTML =
           '＝ ' + improper + '（= ' + mixed + '）';
